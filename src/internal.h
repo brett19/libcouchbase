@@ -47,6 +47,7 @@
 #include "retryq.h"
 #include "aspend.h"
 #include "bootstrap.h"
+#include "meters.h"
 
 /* n1ql cache */
 #include "n1ql/n1ql-internal.h"
@@ -63,6 +64,11 @@ struct Spechost;
 class RetryQueue;
 class Bootstrap;
 class CollectionCache;
+namespace metrics
+{
+class Meter;
+} // namespace metrics
+
 namespace clconfig
 {
 struct Confmon;
@@ -96,12 +102,14 @@ typedef lcb::RetryQueue lcb_RETRYQ;
 typedef lcb::clconfig::Confmon *lcb_pCONFMON;
 typedef lcb::clconfig::ConfigInfo *lcb_pCONFIGINFO;
 typedef lcb::Bootstrap lcb_BOOTSTRAP;
+typedef lcb::metrics::Meter *lcb_METER;
 #else
 typedef struct lcb_SCRATCHBUF *lcb_pSCRATCHBUF;
 typedef struct lcb_RETRYQ_st lcb_RETRYQ;
 typedef struct lcb_CONFMON_st *lcb_pCONFMON;
 typedef struct lcb_CONFIGINFO_st *lcb_pCONFIGINFO;
 typedef struct lcb_BOOTSTRAP_st lcb_BOOTSTRAP;
+typedef struct lcb_METER_st *lcb_METER;
 #endif
 
 struct lcb_st {
@@ -129,6 +137,14 @@ struct lcb_st {
     lcbio_pTIMER dtor_timer;     /**< Asynchronous destruction timer */
     lcb_BTYPE btype;             /**< Type of the bucket */
     lcb_COLLCACHE *collcache;    /**< Collection cache */
+    lcb_TRACING_MANAGER *tracemgr;  -> settings.
+
+  // instance->tracemgr->valueRecorder("X")-> something
+
+  valueRecorder() {
+    
+
+  }
 
 #ifdef __cplusplus
     typedef std::map<std::string, lcbcrypto_PROVIDER *> lcb_ProviderMap;

@@ -646,6 +646,7 @@ lcb_QUERY_HANDLE_::~lcb_QUERY_HANDLE_()
 
     if (span) {
         if (htreq) {
+            record_http_op_latency(nullptr, "query", instance, htreq->start);
             lcbio_CTX *ctx = htreq->ioctx;
             if (ctx) {
                 lcbtrace_span_add_tag_str_nocopy(span, LCBTRACE_TAG_PEER_ADDRESS, htreq->peer.c_str());
@@ -685,6 +686,7 @@ static void chunk_callback(lcb_INSTANCE *instance, int ign, const lcb_RESPBASE *
     }
 
     if (rh->rflags & LCB_RESP_F_FINAL) {
+        record_http_op_latency(nullptr, "query", instance, req->htreq->start);
         req->htreq = nullptr;
         if (!req->maybe_retry()) {
             delete req;

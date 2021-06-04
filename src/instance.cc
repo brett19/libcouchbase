@@ -85,6 +85,15 @@ LIBCOUCHBASE_API lcb_STATUS lcb_createopts_io(lcb_CREATEOPTS *options, struct lc
     return LCB_SUCCESS;
 }
 
+LIBCOUCHBASE_API lcb_STATUS lcb_createopts_meter(lcb_CREATEOPTS *options, lcbmetrics_METER *meter)
+{
+    if (nullptr != meter && nullptr == meter->new_recorder) {
+        return LCB_ERR_INVALID_ARGUMENT;
+    }
+    options->meter = meter;
+    return LCB_SUCCESS;
+}
+
 LIBCOUCHBASE_API
 const char *lcb_get_version(lcb_uint32_t *version)
 {
@@ -538,6 +547,18 @@ lcb_STATUS lcb_create(lcb_INSTANCE **instance, const lcb_CREATEOPTS *options)
     lcb_aspend_init(&obj->pendops);
     obj->collcache = new lcb::CollectionCache();
 
+  if (!settings->meter) {
+    // settings->meter lcb_METER_*
+    settings->meter = lcbmetrics_new_logging_meter()
+  }
+
+  settings->meter_threshhold = 10;
+
+// obj->meter_mgr lcb::Metrics::MeterManager*
+  settings->meter_mgr = new lcb::metrics::MeterManager(settings)
+
+
+
     if ((err = setup_ssl(obj, spec)) != LCB_SUCCESS) {
         goto GT_DONE;
     }
@@ -557,6 +578,7 @@ lcb_STATUS lcb_create(lcb_INSTANCE **instance, const lcb_CREATEOPTS *options)
     if ((err = init_providers(obj, spec)) != LCB_SUCCESS) {
         goto GT_DONE;
     }
+
     if (settings->use_tracing) {
         settings->tracer = lcbtrace_new(obj, LCBTRACE_F_THRESHOLD);
     }
@@ -652,7 +674,6 @@ void lcb_destroy(lcb_INSTANCE *instance)
     DESTROY(do_pool_shutdown, http_sockpool)
     DESTROY(lcb_vbguess_destroy, vbguess)
     DESTROY(lcb_n1qlcache_destroy, n1ql_cache)
-
     if (instance->cmdq.pipelines) {
         unsigned ii;
         for (ii = 0; ii < instance->cmdq.npipelines; ii++) {
@@ -686,6 +707,7 @@ void lcb_destroy(lcb_INSTANCE *instance)
     DESTROY(lcbio_table_unref, iotable)
     DESTROY(lcb_settings_unref, settings)
     DESTROY(lcb_histogram_destroy, kv_timings)
+    DESTROY(delete, op_metrics)
     if (instance->scratch) {
         delete instance->scratch;
         instance->scratch = nullptr;

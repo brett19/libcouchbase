@@ -83,6 +83,7 @@ SET(LCB_CORE_CXXSRC
     src/operations/exists.cc
     src/mcserver/mcserver.cc
     src/mcserver/negotiate.cc
+    src/meters.cc
     src/metrics.cc
     src/retrychk.cc
     src/retryq.cc

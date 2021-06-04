@@ -107,6 +107,8 @@
 #define LCBTRACE_DEFAULT_THRESHOLD_FTS LCB_MS2US(1000)
 #define LCBTRACE_DEFAULT_THRESHOLD_ANALYTICS LCB_MS2US(1000)
 
+#define LCB_DEFAULT_OP_METRICS_FLUSH_INTERVAL LCB_MS2US(600000)
+
 #define LCB_DEFAULT_PERSISTENCE_TIMEOUT_FLOOR 1500000
 
 #include "config.h"
@@ -217,6 +219,7 @@ typedef struct lcb_settings_st {
     lcb_pERRMAP errmap;
     lcb_U32 retry_nmv_interval;
     struct lcb_METRICS_st *metrics;
+    lcbmetrics_METER *meter;
     lcbtrace_TRACER *tracer;
     lcb_U32 tracer_orphaned_queue_flush_interval;
     lcb_U32 tracer_orphaned_queue_size;
@@ -226,6 +229,10 @@ typedef struct lcb_settings_st {
     lcb_U32 compress_min_size;
     float compress_min_ratio;
     char *network; /** network resolution, AKA "Multi Network Configurations" */
+    lcb_U32 op_metrics_flush_interval;
+    unsigned op_metrics_enabled : 1;
+
+    lcb::MeterManager *meter_manager;
 } lcb_settings;
 
 LCB_INTERNAL_API

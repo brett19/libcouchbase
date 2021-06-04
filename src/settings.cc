@@ -83,6 +83,8 @@ void lcb_default_settings(lcb_settings *settings)
     settings->retry_strategy = lcb_retry_strategy_best_effort;
     settings->enable_unordered_execution = 1;
     settings->use_errmap = 1;
+    settings->op_metrics_flush_interval = LCB_DEFAULT_OP_METRICS_FLUSH_INTERVAL;
+    settings->op_metrics_enabled = 0;
 }
 
 LCB_INTERNAL_API

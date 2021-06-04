@@ -18,6 +18,7 @@
 #include "iotests.h"
 #include <map>
 #include <climits>
+#include <cstring>
 #include <algorithm>
 #include "internal.h" /* vbucket_* things from lcb_INSTANCE * */
 #include "auth-priv.h"
@@ -228,6 +229,71 @@ TEST_F(MockUnitTest, testTimingsEx)
     ASSERT_EQ(1, timings.countAt(8, LCB_TIMEUNIT_SEC));
     ASSERT_EQ(1, timings.countAt(93, LCB_TIMEUNIT_SEC));
 #endif
+}
+
+extern "C" {
+
+static void record_callback(void *cookie, uint64_t value)
+{
+    return;
+}
+
+static lcbmetrics_RECORDER *new_recorder(const char *name, const lcbmetrics_TAG *tags, size_t num_tags)
+{
+    bool has_service, has_operation = false;
+    for (int i = 0; i < num_tags; i++) {
+        if (0 == strcmp("db.operation", tags[i].key)) {
+            has_operation = true;
+            EXPECT_STREQ(tags[i].value, "upsert");
+        } else if (0 == strcmp("db.couchbase.service", tags[i].key)) {
+            has_service = true;
+            EXPECT_STREQ(tags[i].value, "kv");
+        } else {
+            ADD_FAILURE() << "unknown key " << tags[i].key;
+        }
+    }
+    EXPECT_TRUE(has_service && has_operation);
+    lcbmetrics_RECORDER *recorder;
+    lcbmetrics_create_value_recorder(&recorder);
+    lcbmetrics_recorder_set_record_value_callback(recorder, record_callback);
+    return recorder;
+}
+
+static void store_cb(lcb_INSTANCE *, lcb_CALLBACK_TYPE, const lcb_RESPSTORE *resp)
+{
+    size_t *counter;
+    lcb_respstore_cookie(resp, (void **)&counter);
+    ++(*counter);
+    ASSERT_EQ(LCB_SUCCESS, lcb_respstore_status(resp));
+}
+} // extern "C"
+
+TEST_F(MockUnitTest, testOpMetrics)
+{
+    lcb_INSTANCE *instance;
+    HandleWrap hw;
+    lcb_CMDSTORE *scmd;
+    size_t counter = 0;
+    lcbmetrics_METER *meter;
+
+    createConnection(hw, &instance);
+    lcbmetrics_create_meter(&meter);
+    lcbmetrics_meter_set_create_value_recorder_callback(meter, new_recorder);
+    lcbmetrics_external_metrics(instance, meter);
+
+    int enable = 1;
+    lcb_cntl(instance, LCB_CNTL_SET, LCB_CNTL_ENABLE_OP_METRICS, &enable);
+    lcb_install_callback(instance, LCB_CALLBACK_STORE, (lcb_RESPCALLBACK)store_cb);
+
+    lcb_cmdstore_create(&scmd, LCB_STORE_UPSERT);
+    lcb_cmdstore_key(scmd, "key", strlen("key"));
+    lcb_cmdstore_value(scmd, "value", strlen("value"));
+    ASSERT_EQ(LCB_SUCCESS, lcb_store(instance, &counter, scmd));
+    lcb_cmdstore_destroy(scmd);
+    lcb_wait(instance, LCB_WAIT_DEFAULT);
+    ASSERT_EQ(1, counter);
+
+    lcbmetrics_meter_destroy(meter);
 }
 
 struct async_ctx {

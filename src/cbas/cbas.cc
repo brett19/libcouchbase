@@ -328,6 +328,7 @@ lcb_ANALYTICS_HANDLE_::~lcb_ANALYTICS_HANDLE_()
 {
     if (htreq) {
         lcb_http_cancel(instance, htreq);
+        record_http_op_latency(nullptr, "analytics", instance, htreq->start);
         htreq = nullptr;
     }
 
@@ -373,6 +374,7 @@ static void chunk_callback(lcb_INSTANCE *instance, int ign, const lcb_RESPBASE *
     }
 
     if (rh->rflags & LCB_RESP_F_FINAL) {
+        record_http_op_latency(nullptr, "analytics", instance, req->htreq->start);
         req->htreq = nullptr;
         if (!req->maybe_retry()) {
             req->unref();

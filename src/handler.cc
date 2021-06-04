@@ -446,6 +446,7 @@ static void H_get(mc_PIPELINE *pipeline, mc_PACKET *request, MemcachedResponse *
     maybe_decompress(o, response, &resp, &freeptr);
     LCBTRACE_KV_FINISH(pipeline, request, resp, response);
     TRACE_GET_END(o, request, response, &resp);
+    record_kv_op_latency("get", o, request);
     invoke_callback(request, o, &resp, LCB_CALLBACK_GET);
     free(freeptr);
 }
@@ -475,6 +476,7 @@ static void H_exists(mc_PIPELINE *pipeline, mc_PACKET *request, MemcachedRespons
     }
     LCBTRACE_KV_FINISH(pipeline, request, resp, response);
     TRACE_EXISTS_END(root, request, response, &resp);
+    record_kv_op_latency("exists", root, request);
     invoke_callback(request, root, &resp, LCB_CALLBACK_EXISTS);
 }
 
@@ -572,6 +574,11 @@ static void H_subdoc(mc_PIPELINE *pipeline, mc_PACKET *request, MemcachedRespons
         } else {
             handle_error_info(response, &w);
         }
+    }
+    if (cbtype == LCB_CALLBACK_SDLOOKUP) {
+        record_kv_op_latency("lookup_in", o, request);
+    } else {
+        record_kv_op_latency("mutate_in", o, request);
     }
     invoke_callback(request, o, &w.resp, cbtype);
     free(w.resp.res);
@@ -701,6 +708,7 @@ static void H_delete(mc_PIPELINE *pipeline, mc_PACKET *packet, MemcachedResponse
     handle_mutation_token(root, response, packet, &w.mt);
     LCBTRACE_KV_FINISH(pipeline, packet, w.resp, response);
     TRACE_REMOVE_END(root, packet, response, &w.resp);
+    record_kv_op_latency("remove", root, packet);
     invoke_callback(packet, root, &w.resp, LCB_CALLBACK_REMOVE);
 }
 
@@ -840,6 +848,7 @@ static void H_store(mc_PIPELINE *pipeline, mc_PACKET *request, MemcachedResponse
     w.resp.rflags |= LCB_RESP_F_EXTDATA | LCB_RESP_F_FINAL;
     handle_mutation_token(root, response, request, &w.mt);
     TRACE_STORE_END(root, request, response, &w.resp);
+    record_kv_op_latency_store(root, request, &w.resp);
     if (request->flags & MCREQ_F_REQEXT) {
         LCBTRACE_KV_COMPLETE(pipeline, request, w.resp, response);
         request->u_rdata.exdata->procs->handler(pipeline, request, immerr, &w.resp);
@@ -867,6 +876,7 @@ static void H_arithmetic(mc_PIPELINE *pipeline, mc_PACKET *request, MemcachedRes
     w.resp.ctx.cas = response->cas();
     LCBTRACE_KV_FINISH(pipeline, request, w.resp, response);
     TRACE_ARITHMETIC_END(root, request, response, &w.resp);
+    record_kv_op_latency("arithmetic", root, request);
     invoke_callback(request, root, &w.resp, LCB_CALLBACK_COUNTER);
 }
 
@@ -972,6 +982,7 @@ static void H_touch(mc_PIPELINE *pipeline, mc_PACKET *request, MemcachedResponse
     resp.rflags |= LCB_RESP_F_FINAL;
     LCBTRACE_KV_FINISH(pipeline, request, resp, response);
     TRACE_TOUCH_END(root, request, response, &resp);
+    record_kv_op_latency("touch", root, request);
     invoke_callback(request, root, &resp, LCB_CALLBACK_TOUCH);
 }
 
@@ -985,6 +996,7 @@ static void H_unlock(mc_PIPELINE *pipeline, mc_PACKET *request, MemcachedRespons
     resp.rflags |= LCB_RESP_F_FINAL;
     LCBTRACE_KV_FINISH(pipeline, request, resp, response);
     TRACE_UNLOCK_END(root, request, response, &resp);
+    record_kv_op_latency("unlock", root, request);
     invoke_callback(request, root, &resp, LCB_CALLBACK_UNLOCK);
 }
 

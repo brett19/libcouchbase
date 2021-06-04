@@ -306,6 +306,7 @@ lcb_VIEW_HANDLE_::~lcb_VIEW_HANDLE_()
 
     if (span) {
         if (htreq) {
+            record_http_op_latency((design_document + "/" + view).c_str(), "views", instance, htreq->start);
             lcbio_CTX *ctx = htreq->ioctx;
             if (ctx) {
                 lcbtrace_span_add_tag_str_nocopy(span, LCBTRACE_TAG_PEER_ADDRESS, htreq->peer.c_str());

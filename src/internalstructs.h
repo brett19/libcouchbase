@@ -77,6 +77,7 @@ struct lcb_CREATEOPTS_ {
     /* override bucket in connection string */
     const char *bucket;
     size_t bucket_len;
+    const lcbmetrics_METER *meter;
 };
 
 /**
